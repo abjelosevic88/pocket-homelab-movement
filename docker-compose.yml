@@ -1,0 +1,26 @@
+# Pocket Movement — your location history, kept at home (Go + SQLite). One container, one volume.
+# Phones send positions (Dawarich app, OwnTracks, Overland, GPSLogger, Traccar, Home Assistant) with a key per device.
+services:
+  pocket-movement:
+    image: ghcr.io/abjelosevic88/pocket-homelab-movement:latest
+    container_name: pocket-movement
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      BASE_URL: ${BASE_URL:-http://localhost:8080}
+      # SECURE_COOKIES: "true"          # behind HTTPS
+      # First admin (only used while the database has no users):
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Place names for stops: nominatim (OpenStreetMap, default), photon or off.
+      GEOCODER: ${GEOCODER:-nominatim}
+      # Pocket Core: one sign-in and app links instead of tokens.
+      # CORE_URL: http://pocket-core:8080
+      # CORE_REGISTRATION_KEY: ${CORE_REGISTRATION_KEY}
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
