@@ -97,6 +97,15 @@ func (s *Store) GetVisit(ctx context.Context, userID, id int64) (*Visit, error) 
 }
 
 // CreateVisit inserts a visit.
+// HasManualVisit reports whether a person already has a visit they made or
+// imported starting and ending within a minute of these times.
+func (s *Store) HasManualVisit(ctx context.Context, userID, start, end int64) bool {
+	var one int
+	err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM visits WHERE user_id = ? AND manual = 1 AND start_ts BETWEEN ? AND ? AND end_ts BETWEEN ? AND ? LIMIT 1`,
+		userID, start-60, start+60, end-60, end+60).Scan(&one)
+	return err == nil
+}
+
 func (s *Store) CreateVisit(ctx context.Context, v *Visit) error {
 	return s.createVisit(ctx, s.DB, v)
 }

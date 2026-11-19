@@ -239,6 +239,9 @@ func (k *importSink) Points(ctx context.Context, pts []importer.Point) error {
 // when you have none yet.
 func (k *importSink) Visit(ctx context.Context, v importer.Visit) error {
 	s := k.s
+	if s.store.HasManualVisit(ctx, k.user, v.Start, v.End) {
+		return nil // brought in before (the same file again): not twice
+	}
 	var placeID int64
 	sem := strings.ToUpper(v.Semantic)
 	if (sem == "HOME" && !k.homeSet) || (sem == "WORK" && !k.workSet) || sem == "INFERRED_HOME" || sem == "INFERRED_WORK" {
@@ -535,6 +538,18 @@ func parseDawarichPoint(row map[string]any) (importer.Point, bool) {
 }
 
 // ---- export ----
+
+// exportAll is the whole history in one format, at a fixed address (what
+// Pocket Move copies out).
+func (s *Server) exportAll(format string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		q.Set("all", "1")
+		q.Set("format", format)
+		r.URL.RawQuery = q.Encode()
+		s.handleExport(w, r)
+	}
+}
 
 // handleExport writes a range (or all=1) as GeoJSON (default), GPX or CSV.
 // Points inside privacy zones are yours, so they stay in unless zones=1

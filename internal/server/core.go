@@ -27,6 +27,27 @@ var linkOffers = []core.Offer{
 	{Scope: "movement:points", Name: "Read your recorded positions", Description: "The raw location points of a time range (as Dawarich's API), for routes on trips and vehicle mileage."},
 }
 
+// portableFor describes what Pocket Move may copy out and bring in for a
+// person (docs/move.md in pocket-homelab-core); maxUpload is the largest
+// file /imports takes. Register adds move:export / move:import.
+func portableFor(maxUpload int64) *core.Portable {
+	return &core.Portable{
+		Exports: []core.PortableExport{
+			{Path: "/api/v1/export.geojson", File: "movement.geojson", Kind: core.KindPocket, Title: "Every position you recorded, as GeoJSON (journeys, visits and places are worked out again from them)"},
+			{Path: "/api/v1/export.gpx", File: "movement.gpx", Kind: core.KindGPX, Title: "Every position you recorded as a GPX track, for maps and sports apps"},
+			{Path: "/api/v1/export.csv", File: "movement.csv", Kind: core.KindCSV, Title: "Every position you recorded as a table"},
+		},
+		Imports: []core.PortableImport{
+			{Path: "/api/v1/imports", Kind: core.KindPocket, Form: "file", MaxBytes: maxUpload, Title: "Adds the positions from another box; ones you already have are skipped"},
+			{Path: "/api/v1/imports", Kind: core.KindTimeline, Form: "file", MaxBytes: maxUpload, Title: "Adds your Google location history: Takeout's Records.json or Semantic Location History, or the Timeline.json your phone exports (or a ZIP of them); what you already have is skipped"},
+			{Path: "/api/v1/imports", Kind: core.KindGPX, Form: "file", MaxBytes: maxUpload, Title: "Adds the positions of a GPX track"},
+		},
+	}
+}
+
+// portable names the routes a move:* link may reach (sizes come from the config in s.portable).
+var portable = portableFor(0)
+
 type linkRoute struct {
 	methods string
 	path    *regexp.Regexp
@@ -41,6 +62,9 @@ var linkRoutes = []linkRoute{
 }
 
 func linkAllows(scopes []string, r *http.Request) bool {
+	if portable.LinkAllows(scopes, r) {
+		return true
+	}
 	for _, lr := range linkRoutes {
 		if !strings.Contains(" "+lr.methods+" ", " "+r.Method+" ") || !lr.path.MatchString(r.URL.Path) {
 			continue
@@ -110,6 +134,7 @@ func (s *Server) registerWithCore(ctx context.Context) error {
 		Offers:    linkOffers,
 		Uses:      append(healthUses(), moneyUses()...),
 		Services:  serviceUses,
+		Portable:  s.portable,
 	}
 	if s.cfg.BaseURL != "" {
 		m.OIDC = &core.OIDCRequest{RedirectURIs: []string{s.oidcCallbackURL()}}

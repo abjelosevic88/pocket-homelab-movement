@@ -38,6 +38,7 @@ const DawarichVersion = "1.16.0"
 
 // Server holds dependencies.
 type Server struct {
+	portable *core.Portable // what Pocket Move may copy out and bring in
 	cfg      *config.Config
 	store    *store.Store
 	log      *slog.Logger
@@ -74,7 +75,7 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, webFS fs.FS) *Se
 		oidc:        &oidcProvider{issuerURL: cfg.OIDCIssuer},
 		core:        core.New(cfg.CoreURL, core.Options{DB: st.DB, TokenFile: cfg.DataDir + "/core.token", UserAgent: cfg.UserAgent}),
 		rebuildKick: make(chan struct{}, 1), importKick: make(chan struct{}, 1), geocodeKick: make(chan struct{}, 1), dawarichKick: make(chan struct{}, 1),
-		live: map[int64]map[chan []byte]struct{}{}}
+		live: map[int64]map[chan []byte]struct{}{}, portable: portableFor(cfg.MaxUploadBytes)}
 }
 
 // Bootstrap seeds the first admin (if configured) and demo data, and starts
@@ -302,6 +303,10 @@ func (s *Server) Router() http.Handler {
 			r.Post("/dawarich-link/sync", s.handleSyncDawarichLink)
 			r.Delete("/dawarich-link", s.handleDeleteDawarichLink)
 			r.Get("/export", s.handleExport)
+			r.Get("/export.geojson", s.exportAll("geojson"))
+			r.Get("/export.gpx", s.exportAll("gpx"))
+			r.Get("/export.csv", s.exportAll("csv"))
+			r.Get("/pocket/portable", s.portable.Handler())
 			r.Post("/rebuild", s.handleRebuild)
 			r.Delete("/history", s.handleDeleteHistory)
 
