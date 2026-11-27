@@ -100,7 +100,7 @@ docker run -d --name pocket-movement -p 8080:8080 -v ./data:/data \
 
 Open it, create the first account (you become the admin), then **Devices → Connect a phone or app**. `DEMO_DATA=true` fills an empty box with two weeks of made-up movement. All settings: [docs/configuration.md](docs/configuration.md). Behind a proxy: [docs/reverse-proxy.md](docs/reverse-proxy.md). Backups: [docs/backup.md](docs/backup.md).
 
-With [Pocket Core](https://github.com/abjelosevic88/pocket-homelab-core), add `CORE_URL` and `CORE_REGISTRATION_KEY`: people sign in with Pocket Core, other Pocket apps can read your timeline through app links, Pocket AI can answer "where was I last Tuesday?", and events (new country, tracking stopped) reach your phone.
+With [Pocket Core](https://github.com/abjelosevic88/pocket-homelab-core), add `CORE_URL` and `CORE_REGISTRATION_KEY`: people sign in with Pocket Core, other Pocket apps can read your timeline through app links, Pocket AI can answer "where was I last Tuesday?", and events (new country, tracking stopped) reach your phone. Pocket Search finds your places and your latest visits to them (`!movement`, `!where`), Pocket Day can list a day's stops and journeys, and Pocket Hub can show how far you have travelled today and how many places you have been to. These three get names, times, distances and counts only, never a position or a route; hidden places stay hidden, and Pocket Hub is never told where you are right now.
 
 ## Build
 

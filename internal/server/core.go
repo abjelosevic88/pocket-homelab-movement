@@ -48,6 +48,20 @@ func portableFor(maxUpload int64) *core.Portable {
 // portable names the routes a move:* link may reach (sizes come from the config in s.portable).
 var portable = portableFor(0)
 
+// capabilities are what Pocket Search, Pocket Day and Pocket Hub may ask
+// Movement (docs/capabilities.md in pocket-homelab-core); Register adds the
+// pocket:* offers. The routes are in capabilities.go. They answer with names,
+// times, distances and counts only: never a position, a route or a point.
+// There is no quick capture: a visit needs a place and a time, so it is
+// added on the timeline.
+var capabilities = core.Capabilities{
+	Search: &core.Searchable{What: "Your places, by name, address, category or notes, and your latest visits to them",
+		Kinds: []string{"place", "visit"}, Bangs: []string{"movement", "where"}},
+	Day: &core.DayFeed{Label: "Movement", One: "place", Many: "places",
+		What: "Where you stopped that day and how you travelled between, with how far and how long"},
+	Widget: &core.Widget{Title: "Movement today", What: "How far you have travelled today and how many places you have been to"},
+}
+
 type linkRoute struct {
 	methods string
 	path    *regexp.Regexp
@@ -62,7 +76,7 @@ var linkRoutes = []linkRoute{
 }
 
 func linkAllows(scopes []string, r *http.Request) bool {
-	if portable.LinkAllows(scopes, r) {
+	if portable.LinkAllows(scopes, r) || capabilities.LinkAllows(scopes, r) {
 		return true
 	}
 	for _, lr := range linkRoutes {
@@ -130,11 +144,13 @@ func (s *Server) registerWithCore(ctx context.Context) error {
 		Description: "Your location history, kept at home: where you went, how and how far, the places you stop and the countries you have been — from your phone's own tracker app or the Dawarich app.",
 		Icon:        "/favicon.svg", Version: Version,
 		URL: s.cfg.CoreAppURL, PublicURL: s.cfg.BaseURL, HealthPath: "/healthz", EnvPrefix: "MOVEMENT",
-		Publishes: publishes,
-		Offers:    linkOffers,
-		Uses:      append(healthUses(), moneyUses()...),
-		Services:  serviceUses,
-		Portable:  s.portable,
+		Publishes:    publishes,
+		Offers:       linkOffers,
+		Uses:         append(healthUses(), moneyUses()...),
+		Services:     serviceUses,
+		Portable:     s.portable,
+		Category:     "Places",
+		Capabilities: capabilities,
 	}
 	if s.cfg.BaseURL != "" {
 		m.OIDC = &core.OIDCRequest{RedirectURIs: []string{s.oidcCallbackURL()}}

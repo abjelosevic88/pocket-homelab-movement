@@ -307,6 +307,9 @@ func (s *Server) Router() http.Handler {
 			r.Get("/export.gpx", s.exportAll("gpx"))
 			r.Get("/export.csv", s.exportAll("csv"))
 			r.Get("/pocket/portable", s.portable.Handler())
+			r.Get("/pocket/search", core.SearchHandler(s.pocketSearch))
+			r.Get("/pocket/day/{date}", core.DayHandler(s.pocketDay))
+			r.Get("/pocket/widget", core.WidgetHandler(s.pocketWidget))
 			r.Post("/rebuild", s.handleRebuild)
 			r.Delete("/history", s.handleDeleteHistory)
 

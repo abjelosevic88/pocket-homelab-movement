@@ -150,6 +150,41 @@ func (s *Store) MergePlaces(ctx context.Context, userID, into int64, from []int6
 	return tx.Commit()
 }
 
+// FindPlaces finds a person's places for Pocket Search: the words in the
+// name, address, city or notes, or a category among cats. Hidden places are
+// left out. The ones with the words in their name come first, then the most
+// visited, with their visit totals as ListPlaces gives them.
+func (s *Store) FindPlaces(ctx context.Context, userID int64, q string, cats []string, limit int) ([]Place, error) {
+	like := "%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q) + "%"
+	match := `p.name LIKE ? ESCAPE '\' OR p.address LIKE ? ESCAPE '\' OR p.city LIKE ? ESCAPE '\' OR p.notes LIKE ? ESCAPE '\'`
+	args := []any{userID, like, like, like, like}
+	for _, c := range cats {
+		match += ` OR p.category = ?`
+		args = append(args, c)
+	}
+	args = append(args, like, limit)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+placeCols+`, COUNT(v.id) AS visits, COALESCE(SUM(v.end_ts - v.start_ts),0), COALESCE(MIN(v.start_ts),0), COALESCE(MAX(v.end_ts),0) AS last
+		FROM places p LEFT JOIN visits v ON v.place_id = p.id AND v.status <> 'declined'
+		WHERE p.user_id = ? AND p.hidden = 0 AND (`+match+`)
+		GROUP BY p.id ORDER BY p.name LIKE ? ESCAPE '\' DESC, visits DESC, last DESC, p.id LIMIT ?`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Place{}
+	for rows.Next() {
+		var visits int
+		var total, first, last int64
+		p, err := scanPlace(rows, &visits, &total, &first, &last)
+		if err != nil {
+			return nil, err
+		}
+		p.Visits, p.TotalS, p.FirstVisit, p.LastVisit = visits, total, first, last
+		out = append(out, *p)
+	}
+	return out, rows.Err()
+}
+
 // PlacesNear returns a person's places whose centre is within `within`
 // metres of a point (rough box first, exact distance by the caller).
 func (s *Store) PlacesNear(ctx context.Context, userID int64, lat, lng, within float64) ([]Place, error) {

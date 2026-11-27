@@ -27,7 +27,8 @@ type moveBox struct {
 }
 
 // newMoveBox starts Movement behind a fake Pocket Core whose
-// pcx_<who>_<export|import|read> tokens are links acting for alice@ or bob@.
+// pcx_<who>_<export|import|read|points|search|day|widget|capture> tokens are
+// links acting for alice@ or bob@.
 func newMoveBox(t *testing.T) *moveBox {
 	t.Helper()
 	coreSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +45,8 @@ func newMoveBox(t *testing.T) *moveBox {
 			return
 		}
 		email := parts[0] + "@example.com"
-		scope := map[string]string{"export": core.ScopeMoveExport, "import": core.ScopeMoveImport, "read": "movement:read"}[parts[1]]
+		scope := map[string]string{"export": core.ScopeMoveExport, "import": core.ScopeMoveImport, "read": "movement:read", "points": "movement:points",
+			"search": core.ScopeSearch, "day": core.ScopeDay, "widget": core.ScopeWidget, "capture": core.ScopeCapture}[parts[1]]
 		_ = json.NewEncoder(w).Encode(map[string]any{"active": true, "kind": "delegated", "scope": scope, "audience": "movement",
 			"user": map[string]any{"id": 3, "sub": email, "email": email, "name": parts[0], "role": "member"},
 			"app":  map[string]any{"id": 4, "slug": "move", "name": "Pocket Move"}})

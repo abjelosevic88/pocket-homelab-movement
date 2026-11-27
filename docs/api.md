@@ -8,7 +8,7 @@ Everything is under `/api/v1` and speaks JSON. There are three ways in:
 | A script | a **personal API token** (`pt_…`, Settings → API tokens) as a bearer token | everything you can do in the web app |
 | The web app | the session cookie | everything |
 
-On a box with Pocket Core, Core's user tokens and app-link tokens (`movement:read`, `movement:points`) work too.
+On a box with Pocket Core, Core's user tokens and app-link tokens (`movement:read`, `movement:points`, and `pocket:search`, `pocket:day`, `pocket:widget` for their one route each) work too. The `pocket:*` routes answer with names, times, distances and counts only: never coordinates, routes or points.
 
 ## Sending positions
 
@@ -102,6 +102,9 @@ Times are unix seconds unless named `*_at`. Dates are `YYYY-MM-DD` in the person
 | `GET /export?format=geojson|gpx|csv&from&to|all=1&zones=1` | |
 | `GET /export.geojson`, `/export.gpx`, `/export.csv` | the whole history in one format |
 | `GET /pocket/portable` | what Pocket Move may copy out (link scope `move:export`: the three exports above) and bring in (`move:import`: `POST /imports`). Imports add; points already there and visits already imported are skipped |
+| `GET /pocket/search?q=&limit=` | for Pocket Search (link scope `pocket:search`): your places by name, address, city, category or notes, each with its latest visits; hidden places never |
+| `GET /pocket/day/:date?tz=` | for Pocket Day (`pocket:day`): the day's stops and journeys with times, minutes and km, its summary line ("7.3 km travelled, 35 min moving, 3 places"), distance and places; declined visits and hidden places left out |
+| `GET /pocket/widget` | for Pocket Hub (`pocket:widget`): today so far, "24 km, 3 places today"; never where you are now, no place names |
 | `POST /rebuild`, `DELETE /history?from&to` | |
 | `GET/POST/PUT/DELETE /shares`, `GET /family`, `GET /shared/:token` (public) | |
 | `GET/POST/PUT/DELETE /privacy-zones` | |
